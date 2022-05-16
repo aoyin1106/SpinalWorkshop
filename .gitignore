@@ -1,6 +1,8 @@
 *.class
 *.log
 *.bak
+.metals/
+.bloop/
 
 # sbt specific
 .cache/
