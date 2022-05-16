@@ -73,7 +73,7 @@ case class PixelSolver(g : PixelSolverGenerics) extends Component{
     } otherwise {
       output.payload.assignSomeByName(cmdContext)
     }
-    io.cmd.ready := !loopback.valid
+    io.cmd.ready := !loopback.valid && output.ready
   }
 
   val mulStage = new Area{
