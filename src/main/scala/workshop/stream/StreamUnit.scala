@@ -18,5 +18,29 @@ case class StreamUnit() extends Component{
   }
 
   val mem = Mem(Bits(32 bits),1 << 8)
-  //TODO
+
+  mem.write(
+    address = io.memWrite.payload.address,
+    data    = io.memWrite.payload.data,
+    enable  = io.memWrite.valid
+  )
+
+  val memReadData = mem.readSync(
+    address = io.cmdA.payload,
+    enable = io.cmdA.fire
+  )
+  val memReadReady = Bool()
+  val memReadValid = Reg(Bool()) init(False) //read needs one cycle, so valid must sync with payload
+
+  // cmdA handshake
+  io.cmdA.ready := memReadReady || !memReadValid
+  when(io.cmdA.ready){
+    memReadValid := io.cmdA.valid
+  }
+
+  // join
+  io.rsp.payload := memReadData ^ io.cmdB.payload
+  io.rsp.valid := memReadValid && io.cmdB.valid
+  io.cmdB.ready := io.rsp.fire
+  memReadReady := io.rsp.fire
 }
