@@ -10,8 +10,12 @@ object Prime{
 
   //Should return True when the number is prime.
   def apply(n : UInt) : Bool = {
-    //TODO
-    ???
+
+    val valueRange = 0 until (1 << widthOf(n))
+    val primeList = valueRange.filter(i => Prime(i))
+    val primeHits = primeList.map(i => i === n)
+    val hit = primeHits.orR
+    return hit
   }
 }
 
