@@ -4,6 +4,8 @@
 
 .metals/
 .bloop/
+*.db
+*.f
 
 # sbt specific
 .cache/

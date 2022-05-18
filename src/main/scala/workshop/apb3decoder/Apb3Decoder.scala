@@ -32,6 +32,25 @@ case class Apb3Decoder(apbConfig : Apb3Config, outputsMapping : Seq[Mapping]) ex
     val outputs = Vec(master(Apb3(apbConfig)), outputsMapping.length)
   }
 
-  //TODO fully asynchronous apb3 decoder
+  // fully asynchronous apb3 decoder
+  for(output <- io.outputs){
+    output.PADDR   := io.input.PADDR
+    output.PWRITE  := io.input.PWRITE
+    output.PWDATA  := io.input.PWDATA
+    output.PENABLE := io.input.PENABLE
+    output.PSEL.lsb:= False
+  }
+
+  val mapHits = outputsMapping.map(i => i.hit(io.input.PADDR))
+  val mapHitIndex = OHToUInt(mapHits)
+
+  // # NOTE: it is tricky that of no output port hits, the mapHits should be all zero instead of one hot
+  // while OHToUInt function does not distinguish '0000' and '0001', they both output zero
+  when(mapHits.orR){
+    io.outputs(mapHitIndex).PSEL.lsb := io.input.PSEL.lsb
+  }
+  io.input.PRDATA := io.outputs(mapHitIndex).PRDATA
+  io.input.PREADY := io.outputs(mapHitIndex).PREADY
+  io.input.PSLVERROR := io.outputs(mapHitIndex).PSLVERROR
 }
 
