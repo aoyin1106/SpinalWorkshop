@@ -66,19 +66,14 @@ case class PixelSolver(g : PixelSolverGenerics) extends Component{
     cmdContext.iteration := 0
     cmdContext.done := False
 
-    // ** Stream Arbiter Stage ** //
-    val insertLoopback = Stream(InserterContext())
-    insertLoopback.valid := loopback.valid
-    loopback.ready := insertLoopback.ready
-    insertLoopback.payload.assignSomeByName(loopback.payload)
-    
-    val insertCmd = Stream(InserterContext())
-    insertCmd.valid := io.cmd.valid
-    io.cmd.ready := insertCmd.ready
-    insertCmd.payload.assignSomeByName(cmdContext)
-
-    val output = StreamArbiterFactory.lowerFirst.noLock.onArgs(insertLoopback, insertCmd)
-
+    val output = Stream(InserterContext())
+    output.valid := io.cmd.valid || loopback.valid
+    when(loopback.valid){
+      output.payload.assignSomeByName(loopback.payload)
+    } otherwise {
+      output.payload.assignSomeByName(cmdContext)
+    }
+    io.cmd.ready := !loopback.valid && output.ready
   }
 
   val mulStage = new Area{
