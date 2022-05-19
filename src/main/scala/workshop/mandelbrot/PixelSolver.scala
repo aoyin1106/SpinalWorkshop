@@ -115,16 +115,19 @@ case class PixelSolver(g : PixelSolverGenerics) extends Component{
     val input = addStage.output.stage()
     val wantedId = Counter(1 << idWidth,inc = io.rsp.fire)
 
-    input.ready := True
-    when(input.valid && input.done && wantedId === input.id){
-      input.ready := io.rsp.ready
-    }
+    val outSel = !(input.done && wantedId === input.id)
+    val outStreams = StreamDemux(input=input, select=outSel.asUInt, portCount=2)
 
-    io.rsp.valid := input.valid && input.done && wantedId === input.id
-    io.rsp.iteration := input.iteration
+    // connect io.rsp TO outStreams(0)
+    io.rsp.valid := outStreams(0).valid
+    outStreams(0).ready := io.rsp.ready
+    io.rsp.payload.assignSomeByName(outStreams(0).payload)
 
-    inserter.loopback.valid := input.valid && (!(input.done && wantedId === input.id) )
-    inserter.loopback.payload.assignSomeByName(input.payload)
+    // connect inserter.loopback TO outStreams(1)
+    inserter.loopback.valid := outStreams(1).valid
+    outStreams(1).ready := True
+    inserter.loopback.payload.assignSomeByName(outStreams(1).payload)
+
   }
 }
 
