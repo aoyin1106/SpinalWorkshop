@@ -10,21 +10,27 @@ case class Dispatcher[T <: Data](dataType : T,outputsCount : Int) extends Compon
     val outputs = Vec(master Stream(dataType),outputsCount)
   }
   
-  val counter = Reg(UInt(log2Up(outputsCount) bits)) init(0)
-  when(io.input.fire){
-    counter := counter + 1
-    if(counter == outputsCount - 1){
-      counter := 0
-    }
-  }
+  // val counter = Reg(UInt(log2Up(outputsCount) bits)) init(0)
+  // when(io.input.fire){
+  //   counter := counter + 1
+  //   if(counter == outputsCount - 1){
+  //     counter := 0
+  //   }
+  // }
 
-  for (output <- io.outputs){
-    output.valid := False
-    output.payload := io.input.payload
-  }
+  // for (output <- io.outputs){
+  //   output.valid := False
+  //   output.payload := io.input.payload
+  // }
 
-  io.outputs(counter).valid := io.input.valid
-  io.input.ready := io.outputs(counter).ready
+  // io.outputs(counter).valid := io.input.valid
+  // io.input.ready := io.outputs(counter).ready
+
+  val dispatchedStreams = StreamDispatcherSequencial(input = io.input, outputCount = outputsCount)
+
+  for (i <- 0 until outputsCount){
+    io.outputs(i) << dispatchedStreams(i)
+  }
 }
 
 case class Arbiter[T <: Data](dataType : T,inputsCount : Int) extends Component{
@@ -33,22 +39,24 @@ case class Arbiter[T <: Data](dataType : T,inputsCount : Int) extends Component{
     val output = master Stream(dataType)
   }
 
-  val counter = Reg(UInt(log2Up(inputsCount) bits)) init(0)
-  when(io.output.fire){
-    counter := counter + 1
-    if(counter == inputsCount - 1){
-      counter := 0
-    }
-  }
+  // val counter = Reg(UInt(log2Up(inputsCount) bits)) init(0)
+  // when(io.output.fire){
+  //   counter := counter + 1
+  //   if(counter == inputsCount - 1){
+  //     counter := 0
+  //   }
+  // }
 
-  for (input <- io.inputs){
-    input.ready := False
-  }
-  io.inputs(counter).ready := io.output.ready
+  // for (input <- io.inputs){
+  //   input.ready := False
+  // }
+  // io.inputs(counter).ready := io.output.ready
 
-  io.output.valid   := io.inputs(counter).valid
-  io.output.payload := io.inputs(counter).payload
+  // io.output.valid   := io.inputs(counter).valid
+  // io.output.payload := io.inputs(counter).payload
 
+  val arbitred = StreamArbiterFactory.sequentialOrder.on(io.inputs)
+  io.output << arbitred
 }
 
 
