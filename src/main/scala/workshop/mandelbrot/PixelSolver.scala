@@ -57,25 +57,32 @@ case class PixelSolver(g : PixelSolverGenerics) extends Component{
   val inserter = new Area{
     val loopback = Stream(RouterContext())
     val freeId = Counter(1 << idWidth,inc = io.cmd.fire)
-    val cmdContext = InserterContext()
-    cmdContext.id := freeId
-    cmdContext.x0 := io.cmd.x
-    cmdContext.y0 := io.cmd.y
-    cmdContext.x  := 0.0
-    cmdContext.y  := 0.0
-    cmdContext.iteration := 0
-    cmdContext.done := False
+    // ** This cmdContext assignment is equivalent to assign done in insertCmd.translateFrom
+    // val cmdContext = InserterContext()
+    // cmdContext.id := freeId
+    // cmdContext.x0 := io.cmd.x
+    // cmdContext.y0 := io.cmd.y
+    // cmdContext.x  := 0.0
+    // cmdContext.y  := 0.0
+    // cmdContext.iteration := 0
+    // cmdContext.done := False
 
     // ** Stream Arbiter Stage ** //
     val insertLoopback = Stream(InserterContext())
-    insertLoopback.valid := loopback.valid
-    loopback.ready := insertLoopback.ready
-    insertLoopback.payload.assignSomeByName(loopback.payload)
+    insertLoopback.translateFrom(loopback)((to, from) => {
+      to.assignSomeByName(from)
+    })
     
     val insertCmd = Stream(InserterContext())
-    insertCmd.valid := io.cmd.valid
-    io.cmd.ready := insertCmd.ready
-    insertCmd.payload.assignSomeByName(cmdContext)
+    insertCmd.translateFrom(io.cmd)((to, from) => {
+      to.id := freeId
+      to.x0 := from.x
+      to.y0 := from.y
+      to.x  := 0.0
+      to.y  := 0.0
+      to.iteration := 0
+      to.done := False
+    })
 
     val output = StreamArbiterFactory.lowerFirst.noLock.onArgs(insertLoopback, insertCmd)
 
@@ -119,15 +126,14 @@ case class PixelSolver(g : PixelSolverGenerics) extends Component{
     val outStreams = StreamDemux(input=input, select=outSel.asUInt, portCount=2)
 
     // connect io.rsp TO outStreams(0)
-    io.rsp.valid := outStreams(0).valid
-    outStreams(0).ready := io.rsp.ready
-    io.rsp.payload.assignSomeByName(outStreams(0).payload)
+    io.rsp.translateFrom(outStreams(0))((to, from) => {
+      to.assignSomeByName(from)
+    })
 
     // connect inserter.loopback TO outStreams(1)
     inserter.loopback.valid := outStreams(1).valid
-    outStreams(1).ready := True
+    outStreams(1).ready := True // ** This is not the behavior of translateFrom(), so wire by hand
     inserter.loopback.payload.assignSomeByName(outStreams(1).payload)
-
   }
 }
 
