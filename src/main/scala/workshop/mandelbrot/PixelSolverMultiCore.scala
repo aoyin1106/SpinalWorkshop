@@ -39,6 +39,7 @@ case class Arbiter[T <: Data](dataType : T,inputsCount : Int) extends Component{
     val output = master Stream(dataType)
   }
 
+  // ** Solution 0 - Connect By Hand ** //
   // val counter = Reg(UInt(log2Up(inputsCount) bits)) init(0)
   // when(io.output.fire){
   //   counter := counter + 1
@@ -55,7 +56,16 @@ case class Arbiter[T <: Data](dataType : T,inputsCount : Int) extends Component{
   // io.output.valid   := io.inputs(counter).valid
   // io.output.payload := io.inputs(counter).payload
 
-  val arbitred = StreamArbiterFactory.sequentialOrder.on(io.inputs)
+  // ** Solution 1 - StreamArbiterFactory ** //
+  //val arbitred = StreamArbiterFactory.sequentialOrder.on(io.inputs)
+  //io.output << arbitred
+
+  // ** Solution 2 - StreamMux ** //
+  val select = Counter(inputsCount)
+  when (io.output.fire) {
+    select.increment()
+  }
+  val arbitred = StreamMux(select = select, inputs = io.inputs)
   io.output << arbitred
 }
 
