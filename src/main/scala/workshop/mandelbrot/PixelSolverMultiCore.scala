@@ -61,11 +61,16 @@ case class Arbiter[T <: Data](dataType : T,inputsCount : Int) extends Component{
   //io.output << arbitred
 
   // ** Solution 2 - StreamMux ** //
-  val select = Counter(inputsCount)
-  when (io.output.fire) {
-    select.increment()
-  }
-  val arbitred = StreamMux(select = select, inputs = io.inputs)
+  // val select = Counter(inputsCount)
+  // when (io.output.fire) {
+  //   select.increment()
+  // }
+  // val arbitred = StreamMux(select = select, inputs = io.inputs)
+  // io.output << arbitred
+
+  // ** Solution 3 - StreamCombinerSequential ** //
+  // equivalent to Solution 2
+  val arbitred = StreamCombinerSequential(io.inputs)
   io.output << arbitred
 }
 
